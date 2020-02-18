@@ -10,31 +10,34 @@ var RRule = require('rrule').RRule;
 var ce = require('cloneextend');
 
 module.exports = function (RED: Red) {
-    function getConfig(config: Config, node: any): Config {
+    function getConfig(config: Config, node: any, msg: any): Config {
         return {
-            url: config.url,
-            language: config.language,
-            replacedates: config.replacedates,
-            caldav: config.caldav,
-            username: config.username,
-            password: config.password,
-            calendar: config.calendar,
-            pastWeeks: config.pastWeeks,
-            futureWeeks: config.futureWeeks,
-            filter: node.filter,
-            trigger: node.trigger || 'always',
-            endpreview: parseInt(node.endpreview !== undefined ? node.endpreview : 10),
-            endpreviewUnits: node.endpreviewUnits || 'd',
-            pastview: parseInt(node.pastview !== undefined ? node.pastview : 0),
-            pastviewUnits: node.pastviewUnits || 'd'
+            url: msg?.url || config.url,
+            language: msg?.language || config.language,
+            replacedates: msg?.replacedates || config.replacedates,
+            caldav: msg?.caldav || config.caldav,
+            username: msg?.username || config.username,
+            password: msg?.password || config.password,
+            calendar: msg?.calendar || config.calendar,
+            pastWeeks: msg?.pastWeeks || config.pastWeeks,
+            futureWeeks: msg?.futureWeeks || config.futureWeeks,
+            filter: msg?.filter || node.filter,
+            trigger: msg?.trigger || node.trigger || 'always',
+            preview: parseInt(msg?.preview || node?.preview || node?.endpreview || 10),
+            previewUnits: msg?.previewUnits || node.previewUnits || node.endpreviewUnits || 'd',
+            pastview: parseInt(msg?.pastview || node?.pastview || 0),
+            pastviewUnits: msg?.pastviewUnits || node.pastviewUnits || 'd'
         } as Config;
     }
 
     function upcomingNode(config: any) {
         RED.nodes.createNode(this, config);
         let node = this;
-        node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config);        
+
+
+        node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
         node.on('input', (msg) => {
+            node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);        
             cronCheckJob(node);
         });
         try {
@@ -104,7 +107,7 @@ module.exports = function (RED: Red) {
         );
     }
 
-    function processRRule(ev, endpreview, today, realnow, node, config) {
+    function processRRule(ev, preview, today, realnow, node, config) {
         var eventLength = ev.end.getTime() - ev.start.getTime();
 
         var options = RRule.parseString(ev.rrule.toString());
@@ -124,8 +127,8 @@ module.exports = function (RED: Red) {
             ev.summary +
             '; start:' +
             ev.start.toString() +
-            '; endpreview:' +
-            endpreview.toString() +
+            '; preview:' +
+            preview.toString() +
             '; today:' +
             today +
             '; now2:' +
@@ -138,7 +141,7 @@ module.exports = function (RED: Red) {
 
         var dates = [];
         try {
-            dates = rule.between(now3, endpreview, true);
+            dates = rule.between(now3, preview, true);
         } catch (e) {
             node.error(
                 'Issue detected in RRule, event ignored; ' +
@@ -150,8 +153,8 @@ module.exports = function (RED: Red) {
                 'now3: ' +
                 now3 +
                 '\n' +
-                'endpreview: ' +
-                endpreview +
+                'preview: ' +
+                preview +
                 '\n' +
                 'string: ' +
                 ev.rrule.toString() +
@@ -194,13 +197,13 @@ module.exports = function (RED: Red) {
                 }
 
                 if (checkDate) {
-                    checkDates(ev2, endpreview, today, realnow, ' rrule ', node, config);
+                    checkDates(ev2, preview, today, realnow, ' rrule ', node, config);
                 }
             }
         }
     }
 
-    function processData(data, realnow, pastview, endpreview, callback, node, config) {
+    function processData(data, realnow, pastview, preview, callback, node, config) {
         var processedEntries = 0;
         for (var k in data) {
             var ev = data[k];
@@ -215,9 +218,9 @@ module.exports = function (RED: Red) {
                 }
 
                 if (ev.rrule === undefined) {
-                    checkDates(ev, endpreview, pastview, realnow, ' ', node, config);
+                    checkDates(ev, preview, pastview, realnow, ' ', node, config);
                 } else {
-                    processRRule(ev, endpreview, pastview, realnow, node, config);
+                    processRRule(ev, preview, pastview, realnow, node, config);
                 }
             }
 
@@ -228,11 +231,11 @@ module.exports = function (RED: Red) {
         if (!Object.keys(data).length) {
             return;
         } else {
-            processData(data, realnow, pastview, endpreview, callback, node, config);
+            processData(data, realnow, pastview, preview, callback, node, config);
         }
     }
 
-    function checkDates(ev, endpreview, pastview, realnow, rule, node, config: Config) {
+    function checkDates(ev, preview, pastview, realnow, rule, node, config: Config) {
         var fullday = false;
         var reason;
         var date;
@@ -278,8 +281,8 @@ module.exports = function (RED: Red) {
             node.debug('Event: ' + JSON.stringify(ev))
             if (fullday) {
                 if (
-                    (ev.start < endpreview && ev.start >= pastview) ||
-                    (ev.end > pastview && ev.end <= endpreview) ||
+                    (ev.start < preview && ev.start >= pastview) ||
+                    (ev.end > pastview && ev.end <= preview) ||
                     (ev.start < pastview && ev.end > pastview)
                 ) {
                     date = formatDate(ev.start, ev.end, true, true, config);
@@ -305,8 +308,8 @@ module.exports = function (RED: Red) {
             } else {
                 // Event with time              
                 if (
-                    (ev.start >= pastview && ev.start < endpreview) ||
-                    (ev.end >= realnow && ev.end <= endpreview) ||
+                    (ev.start >= pastview && ev.start < preview) ||
+                    (ev.end >= realnow && ev.end <= preview) ||
                     (ev.start < realnow && ev.end > realnow)
                 ) {
                     date = formatDate(ev.start, ev.end, true, false, config);
@@ -342,14 +345,14 @@ module.exports = function (RED: Red) {
             try {
                 if (data) {
                     var realnow = new Date();
-                    var endpreview = new Date();
+                    var preview = new Date();
                     var pastview = new Date();
 
-                    if (node.config.endpreviewUnits === 'days' && node.config.endpreview >= 1) {
-                        endpreview = moment(endpreview).endOf('day').add(node.config.endpreview - 1, 'days').toDate();
+                    if (node.config.previewUnits === 'days' && node.config.preview >= 1) {
+                        preview = moment(preview).endOf('day').add(node.config.preview - 1, 'days').toDate();
                     } else {
-                        endpreview = moment(endpreview)
-                            .add(node.config.endpreview, node.config.endpreviewUnits.charAt(0))
+                        preview = moment(preview)
+                            .add(node.config.preview, node.config.previewUnits.charAt(0))
                             .toDate();
                     }
 
@@ -361,7 +364,7 @@ module.exports = function (RED: Red) {
                             .toDate();
                     }
 
-                    processData(data, realnow, pastview, endpreview, callback, node, node.config);
+                    processData(data, realnow, pastview, preview, callback, node, node.config);
                     callback(data);
                 } else {
                     callback(null, 'no Data');

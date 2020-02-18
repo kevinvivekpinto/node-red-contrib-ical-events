@@ -11,14 +11,16 @@ export interface Config extends NodeProperties {
     pastWeeks?: number,
     futureWeeks?: number,
     filter?: string,
-            trigger?: string,
-            endpreview?:number,
-            endpreviewUnits?:string,
-            pastview?: number,
-            pastviewUnits?:string
+    trigger?: string,
+    endpreview?: number,
+    endpreviewUnits?: string,
+    preview?: number,
+    previewUnits?: string,
+    pastview?: number,
+    pastviewUnits?: string
 }
 
-module.exports = function(RED: any) {
+module.exports = function (RED: any) {
     function icalConfig(config: Config) {
         RED.nodes.createNode(this, config);
 

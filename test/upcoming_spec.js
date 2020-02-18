@@ -138,7 +138,7 @@ describe('Upcoming Node', function () {
         });
     });
 
-    it('ical - 2 day pastview - today 1 - total 2', function (done) {
+    it('ical - 2 day pastview - today 1 - total 3', function (done) {
         var flow_ical = [
             { id: "c1", type: "ical-config", url: "https://domain.com/calendar.ics" },
             {
@@ -153,7 +153,7 @@ describe('Upcoming Node', function () {
 
         events["1"].start = moment().subtract(1, 'd').add(1, 's').toDate();
         events["1"].end = moment().subtract(1, 'd').endOf('day').toDate();
-        events["2"].start = moment().add(2, 'd').startOf('day').toDate();
+        events["2"].start = moment().add(2, 'd').startOf('day').add(1, 's').toDate();
         events["2"].end = moment().add(2, 'd').endOf('day').toDate();
         events["3"].start = moment().startOf('day').toDate();
         events["3"].end = moment().endOf('day').toDate();
@@ -164,10 +164,10 @@ describe('Upcoming Node', function () {
         helper.load([icalConfigNode, icalUpcomingNode], flow_ical, function () {
             var n1 = helper.getNode("n1");
             var n2 = helper.getNode("n2");
-            n2.on("input", function (msg) {
+            n2.on("input", function (msg) {               
                 expect(msg).to.have.property('today', 1);
                 expect(msg).to.have.property('tomorrow', 0);
-                expect(msg).to.have.property('total', 2);
+                expect(msg).to.have.property('total', 3);
                 expect(msg.payload).to.be.an('array').that.contains.something.like({ id: "3" });
                 done();
             });
