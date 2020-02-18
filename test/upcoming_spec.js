@@ -167,7 +167,7 @@ describe('Upcoming Node', function () {
             n2.on("input", function (msg) {
                 expect(msg).to.have.property('today', 1);
                 expect(msg).to.have.property('tomorrow', 0);
-                expect(msg).to.have.property('total', 1);
+                expect(msg).to.have.property('total', 2);
                 expect(msg.payload).to.be.an('array').that.contains.something.like({ id: "3" });
                 done();
             });
@@ -229,8 +229,8 @@ describe('Upcoming Node', function () {
 
     it('should be loaded', function (done) {
         var flow = [
-            { id: "c1", type: "ical-config" },
-            { id: "n1", type: "ical-upcoming", config: "c1" }
+            { id: "c1", type: "ical-config", url: "https://domain.com/calendar.ics" },
+            { id: "n1", type: "ical-upcoming", confignode: "c1" }
         ];
 
         helper.load([icalConfigNode, icalUpcomingNode], flow, function () {

@@ -1,15 +1,21 @@
 import { NodeProperties } from 'node-red';
 
 export interface Config extends NodeProperties {
-    url: string,
-    language: string,
-    replacedates: boolean,
+    url?: string,
+    language?: string,
+    replacedates?: boolean,
     caldav: string,
-    username: string,
-    password: string,
-    calendar: string,
-    pastWeeks: number,
-    futureWeeks: number
+    username?: string,
+    password?: string,
+    calendar?: string,
+    pastWeeks?: number,
+    futureWeeks?: number,
+    filter?: string,
+            trigger?: string,
+            endpreview?:number,
+            endpreviewUnits?:string,
+            pastview?: number,
+            pastviewUnits?:string
 }
 
 module.exports = function(RED: any) {

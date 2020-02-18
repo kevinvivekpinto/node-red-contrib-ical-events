@@ -10,20 +10,31 @@ var RRule = require('rrule').RRule;
 var ce = require('cloneextend');
 
 module.exports = function (RED: Red) {
+    function getConfig(config: Config, node: any): Config {
+        return {
+            url: config.url,
+            language: config.language,
+            replacedates: config.replacedates,
+            caldav: config.caldav,
+            username: config.username,
+            password: config.password,
+            calendar: config.calendar,
+            pastWeeks: config.pastWeeks,
+            futureWeeks: config.futureWeeks,
+            filter: node.filter,
+            trigger: node.trigger || 'always',
+            endpreview: parseInt(node.endpreview !== undefined ? node.endpreview : 10),
+            endpreviewUnits: node.endpreviewUnits || 'd',
+            pastview: parseInt(node.pastview !== undefined ? node.pastview : 0),
+            pastviewUnits: node.pastviewUnits || 'd'
+        } as Config;
+    }
+
     function upcomingNode(config: any) {
         RED.nodes.createNode(this, config);
-
-        let configNode = (RED.nodes.getNode(config.confignode) as unknown) as Config;
         let node = this;
-        node.config = configNode;
-        node.filter = config.filter;
-        node.trigger = config.trigger || 'always';
-        node.endpreview = parseInt(config.endpreview !== undefined ? config.endpreview : 10) ;
-        node.endpreviewUnits = config.endpreviewUnits || 'd';
-        node.pastview = parseInt(config.pastview !== undefined ? config.pastview : 0);
-        node.pastviewUnits = config.pastviewUnits || 'd';
-
-        node.on('input', () => {
+        node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config);        
+        node.on('input', (msg) => {
             cronCheckJob(node);
         });
         try {
@@ -54,7 +65,7 @@ module.exports = function (RED: Red) {
             }
 
             if (cron !== '') {
-                node.job = new CronJob(cron, cronCheckJob.bind(null, node, configNode));
+                node.job = new CronJob(cron, cronCheckJob.bind(null, node));
 
                 node.on('close', () => {
                     node.job.stop();
@@ -79,7 +90,6 @@ module.exports = function (RED: Red) {
         node.datesArray_old = ce.clone(node.datesArray);
         node.datesArray = [];
         checkICal(
-            node.config.url,
             (data, err) => {
                 if (err) {
                     node.error('Error: ' + err);
@@ -89,8 +99,8 @@ module.exports = function (RED: Red) {
 
                 displayDates(node, node.config);
             },
-            node,
-            node.config
+            node
+
         );
     }
 
@@ -167,7 +177,7 @@ module.exports = function (RED: Red) {
                 var checkDate = true;
                 if (ev2.exdate) {
                     for (var d in ev2.exdate) {
-                        if(ev2.exdate[d].getTime() === ev2.start.getTime()) {
+                        if (ev2.exdate[d].getTime() === ev2.start.getTime()) {
                             checkDate = false;
                             node.debug('   ' + i + ': sort out');
                             break;
@@ -255,11 +265,11 @@ module.exports = function (RED: Red) {
         }
 
         let output = false;
-        if (node.trigger == 'match') {
-            let regex = new RegExp(node.filter);
+        if (node.config.trigger == 'match') {
+            let regex = new RegExp(node.config.filter);
             if (regex.test(ev.summary)) output = true;
-        } else if (node.trigger == 'nomatch') {
-            let regex = new RegExp(node.filter);
+        } else if (node.config.trigger == 'nomatch') {
+            let regex = new RegExp(node.config.filter);
             if (!regex.test(ev.summary)) output = true;
         } else {
             output = true;
@@ -321,13 +331,13 @@ module.exports = function (RED: Red) {
         }
     }
 
-    function checkICal(urlOrFile, callback, node, config: Config) {
-        getICal(node, urlOrFile, config, (err, data) => {
+    function checkICal(callback, node) {
+        getICal(node, node.config.url, node.config, (err, data) => {
             if (err || !data) {
                 callback(err);
                 return;
             }
-            node.debug('Ical read successfully ' + urlOrFile);
+            node.debug('Ical read successfully ' + node.config.url);
 
             try {
                 if (data) {
@@ -335,23 +345,23 @@ module.exports = function (RED: Red) {
                     var endpreview = new Date();
                     var pastview = new Date();
 
-                    if (node.endpreviewUnits === 'days' && node.endpreview >= 1) {
-                        endpreview = moment(endpreview).endOf('day').add(node.endpreview - 1, 'days').toDate();
+                    if (node.config.endpreviewUnits === 'days' && node.config.endpreview >= 1) {
+                        endpreview = moment(endpreview).endOf('day').add(node.config.endpreview - 1, 'days').toDate();
                     } else {
                         endpreview = moment(endpreview)
-                            .add(node.endpreview, node.endpreviewUnits.charAt(0))
+                            .add(node.config.endpreview, node.config.endpreviewUnits.charAt(0))
                             .toDate();
                     }
 
-                    if (node.pastviewUnits === 'days' && node.pastview >= 1) {
-                        pastview = moment(pastview).startOf('day').subtract(node.pastview - 1, 'days').toDate();
+                    if (node.config.pastviewUnits === 'days' && node.config.pastview >= 1) {
+                        pastview = moment(pastview).startOf('day').subtract(node.config.pastview - 1, 'days').toDate();
                     } else {
                         pastview = moment(pastview)
-                            .subtract(node.pastview, node.pastviewUnits.charAt(0))
+                            .subtract(node.config.pastview, node.config.pastviewUnits.charAt(0))
                             .toDate();
                     }
 
-                    processData(data, realnow, pastview, endpreview, callback, node, config);
+                    processData(data, realnow, pastview, endpreview, callback, node, node.config);
                     callback(data);
                 } else {
                     callback(null, 'no Data');
@@ -820,9 +830,9 @@ module.exports = function (RED: Red) {
                 }
             } else {
                 day = _end.getDate();
-                if(fullday){
+                if (fullday) {
                     day -= 1;
-                    withTime=false;
+                    withTime = false;
                 }
                 month = _end.getMonth() + 1;
                 year = _end.getFullYear();
