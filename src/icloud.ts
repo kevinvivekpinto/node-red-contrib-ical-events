@@ -1,22 +1,19 @@
-const Moment = require('moment');
-const MomentRange = require('moment-range'),
-    moment = MomentRange.extendMoment(Moment),
-    https = require('https'),
-    icalExpander = require('ical-expander'),
-    xmlParser = require('xml-js');
+import icalExpander = require('ical-expander');
+import xmlParser = require('xml-js');
 import { convertEvents, IcalNode } from './helper';
 import { Config } from './ical-config';
+import axios, { AxiosRequestConfig } from "axios";
 
 function process(reslist, start, end, ics) {
     const cal = new icalExpander({ ics, maxIterations: 1000 });
     const events = cal.between(start.toDate(), end.toDate());
 
-    for(let event of convertEvents(events)){
-        reslist[event.uid+event.start] = event;  
+    for (let event of convertEvents(events)) {
+        reslist[event.uid + event.start] = event;
     }
 }
 
-function requestIcloudSecure(config: Config, start, end, cb): any {
+async function requestIcloudSecure(config: Config, start, end) {
     const DavTimeFormat = 'YYYYMMDDTHHmms\\Z',
         url = config.url,
         user = config.username,
@@ -41,54 +38,40 @@ function requestIcloudSecure(config: Config, start, end, cb): any {
         '  </C:filter>\n' +
         '</C:calendar-query>';
 
-    var options = {
-        rejectUnauthorized: false,
-        hostname: host,
-        port: port,
-        path: path,
+
+
+    let conf: AxiosRequestConfig = {
+        // @ts-ignore
         method: 'REPORT',
+        baseURL: `${protocol}://${host}`,
+        url: path,
         headers: {
             "Content-type": "application/xml",
             "Content-Length": xml.length,
             "User-Agent": "calDavClient",
             "Connection": "close",
             "Depth": "1"
-        }
-    };
-
-    if (user && pass) {
-        var userpass = Buffer.from(user + ":" + pass).toString('base64');
-        options.headers["Authorization"] = "Basic " + userpass;
+        },
+        data: xml
     }
 
-    var req = https.request(options, function (res) {
-        var s = "";
-        res.on('data', function (chunk) {
-            s += chunk;
-        });
+    if (user && pass) {
+        conf.auth = {
+            username: user,
+            password: pass
+        }
+    }
 
-        req.on('close', function () {
-
-            try {
-                const json = JSON.parse(xmlParser.xml2json(s, { compact: true, spaces: 0 }));
-
-                cb(json);
-            } catch (e) {
-                console.error("Error parsing response", e)
-            }
-        });
-    });
-
-    req.end(xml);
-
-    req.on('error', function (e) {
-        console.error('problem with request: ' + e.message);
-    });
+    try {
+        let data = await axios(conf);
+        const json = JSON.parse(xmlParser.xml2json(data.data, { compact: true, spaces: 0 }));
+        return json;
+    } catch (err) {
+        console.error(err);
+    }
 }
 
-export function loadEventsForDay(whenMoment, node: IcalNode, cb) {
-
-
+export async function loadEventsForDay(whenMoment, node: IcalNode) {
     let start = whenMoment.clone().startOf('day').subtract(node.config.pastview, node.config.pastviewUnits);
     let end = whenMoment.clone().endOf('day').add(node.config.preview, node.config.previewUnits);
 
@@ -99,16 +82,15 @@ export function loadEventsForDay(whenMoment, node: IcalNode, cb) {
         end = whenMoment.clone().endOf('day').add(node.config.preview, 'days');
     }
 
-    requestIcloudSecure(node.config, start, end, (json => {
-        var reslist = {};
-        if (json && json.multistatus && json.multistatus.response) {
-            var ics;
-            if (json.multistatus.response.propstat) {
-                process(reslist, start, end, json.multistatus.response.propstat.prop['calendar-data']._cdata);
-            } else {
-                json.multistatus.response.forEach(response => process(reslist, start, end, response.propstat.prop['calendar-data']._cdata));
-            }
+    const json = await requestIcloudSecure(node.config, start, end);
+
+    var reslist = {};
+    if (json && json.multistatus && json.multistatus.response) {
+        if (json.multistatus.response.propstat) {
+            process(reslist, start, end, json.multistatus.response.propstat.prop['calendar-data']._cdata);
+        } else {
+            json.multistatus.response.forEach(response => process(reslist, start, end, response.propstat.prop['calendar-data']._cdata));
         }
-        cb(reslist, start, end);
-    }));
+    }
+    return reslist;
 }

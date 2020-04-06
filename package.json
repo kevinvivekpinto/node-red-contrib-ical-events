@@ -68,12 +68,12 @@
     "url": "https://paypal.me/NeumannBenjamin"
   },
   "dependencies": {
+    "axios": "^0.19.2",
     "cloneextend": "0.0.3",
     "cron": "^1.7.2",
     "cron-parser": "^2.13.0",
     "crypto-js": "^3.1.9-1",
     "dav": "^1.8.0",
-    "https": "^1.0.0",
     "ical-expander": "2.1.0",
     "lodash": "^4.17.15",
     "moment": "^2.24.0",
