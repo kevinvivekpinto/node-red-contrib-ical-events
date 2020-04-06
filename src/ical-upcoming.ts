@@ -1,16 +1,14 @@
-import { Red, Node } from 'node-red';
+import { Red } from 'node-red';
 import { CronJob } from 'cron';
 import { Config } from './ical-config';
 import * as moment from 'moment';
-import { getICal, CalEvent, countdown, addOffset, getTimezoneOffset, getConfig, IcalNode, checkDates, processRRule, formatDate, processData } from './helper';
+import { getICal, CalEvent, getConfig, IcalNode, formatDate, processData } from './helper';
 import * as NodeCache from 'node-cache';
 
 var parser = require('cron-parser');
 var ce = require('cloneextend');
 
 module.exports = function (RED: Red) {
-
-
     function upcomingNode(config: any) {
         RED.nodes.createNode(this, config);
         let node: IcalNode = this;
@@ -80,9 +78,7 @@ module.exports = function (RED: Red) {
             node.status({ fill: 'red', shape: 'ring', text: err.message });
             return;
         }
-    }
-
-    
+    }    
 
     async function checkICal(node) {
         let data = await getICal(node, node.config);
@@ -130,10 +126,7 @@ module.exports = function (RED: Red) {
             node.debug(JSON.stringify(e));
             throw 'no Data';
         }
-
     }
-
-
 
     function displayDates(node: any, config: Config,datesArray) {
         let todayEventcounter = 0;
@@ -162,9 +155,6 @@ module.exports = function (RED: Red) {
         });
     }
 
-
-
-
     function brSeparatedList(datesArray: CalEvent[], config) {
         var text = '<span>';
         var today = new Date();
@@ -186,8 +176,6 @@ module.exports = function (RED: Red) {
 
         return text;
     }
-
-
 
     RED.nodes.registerType('ical-upcoming', upcomingNode);
 };
