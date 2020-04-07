@@ -1,6 +1,6 @@
 import icalExpander = require('ical-expander');
 import xmlParser = require('xml-js');
-import { convertEvents, IcalNode } from './helper';
+import { convertEvents } from './helper';
 import { Config } from './ical-config';
 import axios, { AxiosRequestConfig } from "axios";
 
@@ -42,7 +42,7 @@ async function requestIcloudSecure(config: Config, start, end) {
 
     let conf: AxiosRequestConfig = {
         // @ts-ignore
-        method: 'REPORT',
+        method: 'REPORT',        
         baseURL: `${protocol}://${host}`,
         url: path,
         headers: {
@@ -71,18 +71,18 @@ async function requestIcloudSecure(config: Config, start, end) {
     }
 }
 
-export async function loadEventsForDay(whenMoment, node: IcalNode) {
-    let start = whenMoment.clone().startOf('day').subtract(node.config.pastview, node.config.pastviewUnits);
-    let end = whenMoment.clone().endOf('day').add(node.config.preview, node.config.previewUnits);
+export async function loadEventsForDay(whenMoment, config: Config) {
+    let start = whenMoment.clone().startOf('day').subtract(config.pastview, config.pastviewUnits);
+    let end = whenMoment.clone().endOf('day').add(config.preview, config.previewUnits);
 
-    if (node.config.pastviewUnits === 'days') {
-        start = whenMoment.clone().startOf('day').subtract(node.config.pastview + 1, 'days');
+    if (config.pastviewUnits === 'days') {
+        start = whenMoment.clone().startOf('day').subtract(config.pastview + 1, 'days');
     }
-    if (node.config.previewUnits === 'days') {
-        end = whenMoment.clone().endOf('day').add(node.config.preview, 'days');
+    if (config.previewUnits === 'days') {
+        end = whenMoment.clone().endOf('day').add(config.preview, 'days');
     }
 
-    const json = await requestIcloudSecure(node.config, start, end);
+    const json = await requestIcloudSecure(config, start, end);
 
     var reslist = {};
     if (json && json.multistatus && json.multistatus.response) {

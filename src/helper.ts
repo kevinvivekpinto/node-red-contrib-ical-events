@@ -75,7 +75,8 @@ export function getConfig(config: Config, node: any, msg: any): Config {
         pastview: parseInt(msg?.pastview || node?.pastview || 0),
         pastviewUnits: msg?.pastviewUnits || node?.pastviewUnits || 'd',
         offset: parseInt(msg?.offset || node?.offset || 0),
-        offsetUnits: msg?.offsetUnits || node?.offsetUnits || 'm'
+        offsetUnits: msg?.offsetUnits || node?.offsetUnits || 'm',
+        rejectUnauthorized:msg?.rejectUnauthorized || node?.rejectUnauthorized || false
     } as Config;
 }
 
@@ -245,6 +246,7 @@ export function countdown(date) {
 
 async function getEvents(node: IcalNode, config) {
     if (config.caldav && config.caldav === 'icloud') {
+        node.debug('icloud');
         const now = moment();
         const when = now.toDate();
         let list = await loadEventsForDay(moment(when), node);
@@ -252,7 +254,7 @@ async function getEvents(node: IcalNode, config) {
     } else if (config.caldav && JSON.parse(config.caldav) === true) {
         node.debug('caldav');
         try {
-            let data = await CalDav(node, config);
+            let data = await CalDav(config);
             let retEntries = {};
             if (data) {
                 for (let events of data) {
@@ -262,16 +264,23 @@ async function getEvents(node: IcalNode, config) {
                     }
                 }
             }
-            return retEntries;
-        } catch{
-            return Fallback(node);
+           return retEntries;
         }
-
+        catch(err) {
+            node.debug(`caldav - get calendar went wrong. Error Message: ${err}`)
+            node.debug(`caldav - using fallback`)
+            Fallback(config).then((data) => {
+                return data;
+            }).catch(err_fallback=>{
+                throw (`caldav - get calendar went wrong. Error Message: ${err_fallback}`)
+            })
+        };
     } else {
-        if (node.config?.url?.match(/^https?:\/\//)) {
+        node.debug('ical');
+        if (config?.url?.match(/^https?:\/\//)) {
             let header = {};
-            let username = node.config.username;
-            let password = node.config.password;
+            let username = config.username;
+            let password = config.password;
 
             if (username && password) {
                 var auth = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
@@ -284,7 +293,7 @@ async function getEvents(node: IcalNode, config) {
 
             return await nodeIcal.async.fromURL(node.config.url, header);
         } else {
-            if (!node.config.url) {
+            if (!config.url) {
                 node.error("URL/File is not defined");
                 node.status({ fill: 'red', shape: 'ring', text: "URL/File is not defined" });
                 return {};
