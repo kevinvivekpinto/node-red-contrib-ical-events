@@ -1,28 +1,10 @@
-import { NodeProperties } from 'node-red';
-
-export interface Config extends NodeProperties {
-    rejectUnauthorized?: boolean;    
-    url?: string,
-    language?: string,
-    replacedates?: boolean,
-    caldav?: string,
-    username?: string,
-    password?: string,
-    calendar?: string,  
-    filter?: string,
-    trigger?: string,
-    endpreview?: number,
-    endpreviewUnits?: string,
-    preview?: number,
-    previewUnits?: string,
-    pastview?: number,
-    pastviewUnits?: string,
-    offsetUnits?:string,
-    offset?: number
+import { Config } from 'kalender-events';
+interface IcalConfig extends Config{
+    name?: string;
 }
 
 module.exports = function (RED: any) {
-    function icalConfig(config: Config) {
+    function icalConfig(config: IcalConfig) {
         RED.nodes.createNode(this, config);
 
         this.url = config.url;
@@ -33,7 +15,7 @@ module.exports = function (RED: any) {
         this.name = config.name;
         this.language = config.language;
         this.replacedates = config.replacedates;
-        this.calendar = config.calendar;       
+        this.calendar = config.calendar;
     }
 
     RED.nodes.registerType('ical-config', icalConfig);

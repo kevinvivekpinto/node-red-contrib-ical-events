@@ -4,8 +4,8 @@ import * as crypto from "crypto-js";
 import { CronJob } from 'cron';
 import { CronTime } from 'cron';
 import * as parser from 'cron-parser';
-import { Config } from './ical-config';
-import { getICal, CalEvent, countdown, getConfig, IcalNode } from './helper';
+import { Config } from 'kalender-events';
+import { getICal, CalEvent, countdown, getConfig, IcalNode } from 'kalender-events';
 import * as NodeCache from 'node-cache';
 
 
@@ -19,7 +19,7 @@ module.exports = function (RED: Red) {
         try {
             node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
             node.cache = new NodeCache();
-            node.on('input', (msg) => {
+            node.on('input', (msg:any) => {
                 node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
                 cronCheckJob(node);
             });
@@ -30,6 +30,7 @@ module.exports = function (RED: Red) {
                     for (let key in startedCronJobs) {
                         if (startedCronJobs.hasOwnProperty(key)) {
                             node.debug(key + " stopped")
+                            //@ts-ignore
                             startedCronJobs[key].stop();
                         }
                     }
@@ -110,6 +111,7 @@ module.exports = function (RED: Red) {
 
 
                             let job2 = new CronJob(eventStart, cronJobStart.bind(null, event, node));
+                            //@ts-ignore
                             let cronJob = startedCronJobs[uid];
                             console.log(cronJob)
                             if (!newCronJobs.has(uid) && !cronJob) {
@@ -154,11 +156,14 @@ module.exports = function (RED: Red) {
                             }
 
                             let job2 = new CronJob(eventEnd, cronJobEnd.bind(null, event, node));
+                            //@ts-ignore
                             let cronJob = startedCronJobs[uid];
+                            //@ts-ignore
                             if (!newCronJobs.has(uid) && !startedCronJobs[uid]) {
                                 newCronJobs.set(uid, job2);
                                 node.debug("new - " + uid);
                             }
+                            //@ts-ignore
                             else if (startedCronJobs[uid]) {
                                 cronJob.stop();
                                 job2 = new CronJob(eventStart, cronJobEnd.bind(null, event, node));
@@ -175,6 +180,7 @@ module.exports = function (RED: Red) {
                     try {
                         job.start();
                         node.debug("starting - " + key);
+                        //@ts-ignore
                         startedCronJobs[key] = job;
                     } catch (newCronErr) {
                         node.error(newCronErr);
@@ -188,11 +194,15 @@ module.exports = function (RED: Red) {
 
         for (let key in startedCronJobs) {
             if (startedCronJobs.hasOwnProperty(key)) {
+                //@ts-ignore
                 if (startedCronJobs[key].running == false) {
+                    //@ts-ignore
                     delete startedCronJobs[key];
                 }
                 else if (!(possibleUids.includes(key, 0))) {
+                    //@ts-ignore
                     startedCronJobs[key].stop();
+                    //@ts-ignore
                     delete startedCronJobs[key];
                 }
             }
@@ -200,13 +210,13 @@ module.exports = function (RED: Red) {
 
     }
 
-    function cronJobStart(event: any, node) {
+    function cronJobStart(event: any, node:Node) {
         node.send([{
             payload: event
         }]);
     }
 
-    function cronJobEnd(event: any, node) {
+    function cronJobEnd(event: any, node:Node) {
         node.send([null, {
             payload: event
         }]);

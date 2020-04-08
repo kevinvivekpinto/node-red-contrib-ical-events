@@ -2,8 +2,8 @@
 import { Red, Node } from 'node-red';
 import * as crypto from "crypto-js";
 import { CronJob } from 'cron';
-import { Config } from './ical-config';
-import { getICal, CalEvent, countdown, addOffset, getTimezoneOffset, getConfig, IcalNode, processRRule, processData } from './helper';
+import { Config } from 'kalender-events';
+import { getICal, CalEvent, countdown, addOffset, getTimezoneOffset, getConfig, IcalNode, processRRule, processData } from 'kalender-events';
 import * as NodeCache from 'node-cache';
 var RRule = require('rrule').RRule;
 var ce = require('cloneextend');
@@ -16,7 +16,7 @@ module.exports = function (RED: Red) {
         try {
             node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
             node.cache = new NodeCache();
-            node.on('input', (msg) => {
+            node.on('input', (msg:any) => {
                 node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
                 cronCheckJob(node);
             });

@@ -1,9 +1,9 @@
 import { Red } from 'node-red';
 import { CronJob } from 'cron';
-import { Config } from './ical-config';
+import { Config,getICal, CalEvent, getConfig, formatDate, processData  } from 'kalender-events';
 import * as moment from 'moment';
-import { getICal, CalEvent, getConfig, IcalNode, formatDate, processData } from './helper';
 import * as NodeCache from 'node-cache';
+import { IcalNode } from './helper';
 
 var parser = require('cron-parser');
 var ce = require('cloneextend');
@@ -80,8 +80,8 @@ module.exports = function (RED: Red) {
         }
     }    
 
-    async function checkICal(node) {
-        let data = await getICal(node, node.config);
+    async function checkICal(node:IcalNode) {
+        let data = await getICal(node.config);
         if (!data) {
             return;
         }
@@ -128,7 +128,7 @@ module.exports = function (RED: Red) {
         }
     }
 
-    function displayDates(node: any, config: Config,datesArray) {
+    function displayDates(node: any, config: Config,datesArray:any) {
         let todayEventcounter = 0;
         let tomorrowEventcounter = 0;
         let today = new Date();
@@ -155,7 +155,7 @@ module.exports = function (RED: Red) {
         });
     }
 
-    function brSeparatedList(datesArray: CalEvent[], config) {
+    function brSeparatedList(datesArray: CalEvent[], config:Config) {
         var text = '<span>';
         var today = new Date();
         var tomorrow = new Date();
