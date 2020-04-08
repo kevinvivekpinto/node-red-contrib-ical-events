@@ -2,9 +2,10 @@
 import { Red, Node } from 'node-red';
 import * as crypto from "crypto-js";
 import { CronJob } from 'cron';
-import { Config } from 'kalender-events';
-import { getICal, CalEvent, countdown, addOffset, getTimezoneOffset, getConfig, IcalNode, processRRule, processData } from 'kalender-events';
+import KalenderEvents, { Config } from 'kalender-events';
+import {  CalEvent} from 'kalender-events';
 import * as NodeCache from 'node-cache';
+import { IcalNode } from './helper';
 var RRule = require('rrule').RRule;
 var ce = require('cloneextend');
 
@@ -14,10 +15,11 @@ module.exports = function (RED: Red) {
         let node: IcalNode = this;
 
         try {
-            node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
+            node.kalenderEvents = new KalenderEvents();
+            node.config = node.kalenderEvents.getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
             node.cache = new NodeCache();
             node.on('input', (msg:any) => {
-                node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
+                node.config = node.kalenderEvents.getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
                 cronCheckJob(node);
             });
 
@@ -65,7 +67,7 @@ module.exports = function (RED: Red) {
         }
 
         var dateNow = new Date();
-        let data = await getICal(node, node.config);
+        let data = await node.kalenderEvents.getICal(node.config);
         node.debug('Ical read successfully ' + node.config.url);
         if (!data) return;
 
@@ -73,7 +75,7 @@ module.exports = function (RED: Red) {
         let last = node.context().get('on');
 
         var reslist: CalEvent[] = [];
-        processData(data, new Date(), new Date(), addOffset(new Date(), 24 * 60), node, node.config, reslist);
+        node.kalenderEvents.processData(data, new Date(), new Date(), node.kalenderEvents.addOffset(new Date(), 24 * 60), node.config, reslist);
 
         for (let k in reslist) {
             if (reslist.hasOwnProperty(k)) {

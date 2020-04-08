@@ -1,7 +1,7 @@
 import { CronJob } from 'cron';
 import { Node } from 'node-red';
 import * as NodeCache from 'node-cache';
-import { Config } from 'kalender-events';
+import KalenderEvents, { Config } from 'kalender-events';
 
 export interface Job {
     id: string,
@@ -14,4 +14,5 @@ export interface IcalNode extends Node {
     job: CronJob;
     config: Config;
     cache: NodeCache;
+    kalenderEvents:KalenderEvents
 }

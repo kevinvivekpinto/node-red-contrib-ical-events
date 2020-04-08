@@ -5,8 +5,9 @@ import { CronJob } from 'cron';
 import { CronTime } from 'cron';
 import * as parser from 'cron-parser';
 import { Config } from 'kalender-events';
-import { getICal, CalEvent, countdown, getConfig, IcalNode } from 'kalender-events';
+import KalenderEvents,{  CalEvent} from 'kalender-events';
 import * as NodeCache from 'node-cache';
+import { IcalNode } from './helper';
 
 
 module.exports = function (RED: Red) {
@@ -17,10 +18,12 @@ module.exports = function (RED: Red) {
         let node: IcalNode = this;
 
         try {
-            node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
+            node.kalenderEvents=new KalenderEvents();
+            node.config = node.kalenderEvents.getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
             node.cache = new NodeCache();
+            
             node.on('input', (msg:any) => {
-                node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
+                node.config = node.kalenderEvents.getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
                 cronCheckJob(node);
             });
 
@@ -64,7 +67,7 @@ module.exports = function (RED: Red) {
         }
         let dateNow = new Date();
         let possibleUids = [];
-        let data = await getICal(node, node.config);
+        let data = await node.kalenderEvents.getICal(node.config);
         if (!data) {
             return;
         }
@@ -93,7 +96,7 @@ module.exports = function (RED: Red) {
                                 eventEnd: new Date(ev.end),
                                 description: ev.description,
                                 calendarName: ev.calendarName,
-                                countdown: countdown(new Date(ev.start))
+                                countdown: node.kalenderEvents.countdown(new Date(ev.start))
                             }
 
 
@@ -140,7 +143,7 @@ module.exports = function (RED: Red) {
                                 eventEnd: new Date(ev.end),
                                 description: ev.description,
                                 calendarName: ev.calendarName,
-                                countdown: countdown(new Date(ev.start))
+                                countdown: node.kalenderEvents.countdown(new Date(ev.start))
                             }
 
                             if (node.config.offset) {
