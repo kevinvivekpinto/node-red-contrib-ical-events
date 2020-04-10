@@ -15,11 +15,13 @@ module.exports = function (RED: Red) {
         let node: IcalNode = this;
 
         try {
-            node.kalenderEvents = new KalenderEvents();
+            
             node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
+            node.kalenderEvents=new KalenderEvents(node.config);
             node.cache = new NodeCache();
             node.on('input', (msg:any) => {
                 node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
+                node.kalenderEvents=new KalenderEvents(node.config);
                 cronCheckJob(node);
             });
 
@@ -75,7 +77,7 @@ module.exports = function (RED: Red) {
         let last = node.context().get('on');
 
         var reslist: CalEvent[] = [];
-        node.kalenderEvents.processData(data, new Date(), new Date(), node.kalenderEvents.addOffset(new Date(), 24 * 60), node.config, reslist);
+        node.kalenderEvents.processData(data, new Date(), new Date(), node.kalenderEvents.addOffset(new Date(), 24 * 60), reslist);
 
         for (let k in reslist) {
             if (reslist.hasOwnProperty(k)) {

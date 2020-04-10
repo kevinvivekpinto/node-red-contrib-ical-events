@@ -5,7 +5,7 @@
         "outDir": "./dist",
         "target": "es5",
         "moduleResolution": "node",
-        "noImplicitAny": true,
+        "allowJs": true,
     },
     "include": [
         "./src/**/*"

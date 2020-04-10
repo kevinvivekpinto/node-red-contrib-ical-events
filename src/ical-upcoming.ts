@@ -12,11 +12,12 @@ module.exports = function (RED: Red) {
     function upcomingNode(config: any) {
         RED.nodes.createNode(this, config);
         let node: IcalNode = this;
-        node.cache = new NodeCache();
-        node.kalenderEvents = new KalenderEvents();
+        node.cache = new NodeCache();        
         node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
+        node.kalenderEvents=new KalenderEvents(node.config);
         node.on('input', (msg) => {
             node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
+            node.kalenderEvents=new KalenderEvents(node.config);
             cronCheckJob(node);
         });
         try {
@@ -120,7 +121,7 @@ module.exports = function (RED: Red) {
                         .toDate();
                 }
                 var reslist: CalEvent[] = [];
-               node.kalenderEvents.processData(data, realnow, pastview, preview, node.config, reslist);
+               node.kalenderEvents.processData(data, realnow, pastview, preview, reslist);
                 return reslist;
             } else {
                 throw 'no Data';
@@ -170,7 +171,7 @@ module.exports = function (RED: Red) {
         dayafter.setHours(0, 0, 0, 0);
 
         for (var i = 0; i < datesArray.length; i++) {
-            var date = node.kalenderEvents.formatDate(datesArray[i].eventStart, datesArray[i].eventEnd, true, datesArray[i].allDay, config);
+            var date = node.kalenderEvents.formatDate(datesArray[i].eventStart, datesArray[i].eventEnd, true, datesArray[i].allDay);
 
             if (text) text += '<br/>\n';
             text += (date.text.trim() + ' ' + datesArray[i].event).trim()
