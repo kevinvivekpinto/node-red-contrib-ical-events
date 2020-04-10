@@ -3,7 +3,7 @@ import { CronJob } from 'cron';
 import KalenderEvents,{ Config, CalEvent } from 'kalender-events';
 import * as moment from 'moment';
 import * as NodeCache from 'node-cache';
-import { IcalNode } from './helper';
+import { IcalNode, getConfig } from './helper';
 
 var parser = require('cron-parser');
 var ce = require('cloneextend');
@@ -14,9 +14,9 @@ module.exports = function (RED: Red) {
         let node: IcalNode = this;
         node.cache = new NodeCache();
         node.kalenderEvents = new KalenderEvents();
-        node.config = node.kalenderEvents.getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
+        node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
         node.on('input', (msg) => {
-            node.config = node.kalenderEvents.getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
+            node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
             cronCheckJob(node);
         });
         try {

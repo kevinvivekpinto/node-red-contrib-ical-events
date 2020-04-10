@@ -7,7 +7,7 @@ import * as parser from 'cron-parser';
 import { Config } from 'kalender-events';
 import KalenderEvents,{  CalEvent} from 'kalender-events';
 import * as NodeCache from 'node-cache';
-import { IcalNode } from './helper';
+import { IcalNode, getConfig } from './helper';
 
 
 module.exports = function (RED: Red) {
@@ -19,11 +19,11 @@ module.exports = function (RED: Red) {
 
         try {
             node.kalenderEvents=new KalenderEvents();
-            node.config = node.kalenderEvents.getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
+            node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
             node.cache = new NodeCache();
             
             node.on('input', (msg:any) => {
-                node.config = node.kalenderEvents.getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
+                node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
                 cronCheckJob(node);
             });
 
