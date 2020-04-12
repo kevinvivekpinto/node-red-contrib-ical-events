@@ -2,7 +2,6 @@ import { Red } from 'node-red';
 import { CronJob } from 'cron';
 import KalenderEvents,{ Config, CalEvent } from 'kalender-events';
 import * as moment from 'moment';
-import * as NodeCache from 'node-cache';
 import { IcalNode, getConfig } from './helper';
 
 var parser = require('cron-parser');
@@ -12,7 +11,7 @@ module.exports = function (RED: Red) {
     function upcomingNode(config: any) {
         RED.nodes.createNode(this, config);
         let node: IcalNode = this;
-        node.cache = new NodeCache();        
+        
         node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
         node.kalenderEvents=new KalenderEvents(node.config);
         node.on('input', (msg) => {
@@ -119,10 +118,8 @@ module.exports = function (RED: Red) {
                     pastview = moment(pastview)
                         .subtract(node.config.pastview, node.config.pastviewUnits.charAt(0))
                         .toDate();
-                }
-                var reslist: CalEvent[] = [];
-               node.kalenderEvents.processData(data, realnow, pastview, preview, reslist);
-                return reslist;
+                }                
+                return node.kalenderEvents.processData(data, realnow, pastview, preview);
             } else {
                 throw 'no Data';
             }
@@ -171,10 +168,9 @@ module.exports = function (RED: Red) {
         dayafter.setHours(0, 0, 0, 0);
 
         for (var i = 0; i < datesArray.length; i++) {
-            var date = node.kalenderEvents.formatDate(datesArray[i].eventStart, datesArray[i].eventEnd, true, datesArray[i].allDay);
-
+            var date = datesArray[i].date;
             if (text) text += '<br/>\n';
-            text += (date.text.trim() + ' ' + datesArray[i].event).trim()
+            text += (date.trim() + ' ' + datesArray[i].event).trim()
             text += '</span>';
         }
 

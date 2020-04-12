@@ -1,13 +1,10 @@
 
 import { Red, Node } from 'node-red';
-import * as crypto from "crypto-js";
 import { CronJob } from 'cron';
-import { CronTime } from 'cron';
 import * as parser from 'cron-parser';
-import { Config } from 'kalender-events';
-import KalenderEvents,{  CalEvent} from 'kalender-events';
-import * as NodeCache from 'node-cache';
+import KalenderEvents, { CalEvent, Config } from 'kalender-events';
 import { IcalNode, getConfig } from './helper';
+import { notDeepEqual } from 'assert';
 
 
 module.exports = function (RED: Red) {
@@ -18,14 +15,13 @@ module.exports = function (RED: Red) {
         let node: IcalNode = this;
 
         try {
-           
+
             node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
-            node.kalenderEvents=new KalenderEvents(node.config);
-            node.cache = new NodeCache();
-            
-            node.on('input', (msg:any) => {
+            node.kalenderEvents = new KalenderEvents(node.config);
+
+            node.on('input', (msg: any) => {
                 node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
-                node.kalenderEvents=new KalenderEvents(node.config);
+                node.kalenderEvents = new KalenderEvents(node.config);
                 cronCheckJob(node);
             });
 
@@ -42,15 +38,43 @@ module.exports = function (RED: Red) {
                 }
             });
 
-            if (config.cron && config.cron !== "") {
-                parser.parseExpression(config.cron);
+            let cron = '';
 
-                node.job = new CronJob(config.cron || '0 0 * * * *', cronCheckJob.bind(null, node));
-                node.job.start();
+            if (config.timeout && config.timeout !== '' && parseInt(config.timeout) > 0 && config.timeoutUnits && config.timeoutUnits !== '') {
+                switch (config.timeoutUnits) {
+                    case 'seconds':
+                        cron = `*/${config.timeout} * * * * *`;
+                        break;
+                    case 'minutes':
+                        cron = `0 */${config.timeout} * * * *`;
+                        break;
+                    case 'hours':
+                        cron = `0 0 */${config.timeout} * * *`;
+                        break;
+                    case 'days':
+                        cron = `0 0 0 */${config.timeout} * *`;
+                        break;
+                    default:
+                        break;
+                }
+                node.config.preview = config.timeout;
+                node.config.previewUnits = config.timeoutUnits;
+            }
+
+            if (config.cron && config.cron !== '') {
+                parser.parseExpression(config.cron);
+                cron = config.cron;
+            }
+
+            if (cron !== '') {
+                node.job = new CronJob(cron, cronCheckJob.bind(null, node));
 
                 node.on('close', () => {
                     node.job.stop();
+                    node.debug('cron stopped');
                 });
+
+                node.job.start();
             }
         }
         catch (err) {
@@ -73,6 +97,7 @@ module.exports = function (RED: Red) {
         if (!data) {
             return;
         }
+        var reslist: CalEvent[] = node.kalenderEvents.processData(data, new Date(), new Date(), node.kalenderEvents.addOffset(new Date(), node.config.preview, node.config.previewUnits));
 
         node.debug('Ical read successfully ' + node.config.url);
         if (data) {
@@ -84,10 +109,7 @@ module.exports = function (RED: Red) {
                     const eventEnd = new Date(ev.end);
                     if (ev.type == 'VEVENT') {
                         if (eventStart > dateNow) {
-                            let uid = crypto.MD5(ev.created + ev.summary + "start").toString();
-                            if (ev.uid) {
-                                uid = ev.uid + "start";
-                            }
+                            let uid = ev.uid + "start";
                             possibleUids.push(uid);
                             const event: CalEvent = {
                                 summary: ev.summary,
@@ -131,10 +153,7 @@ module.exports = function (RED: Red) {
                             }
                         }
                         if (eventEnd > dateNow) {
-                            let uid = crypto.MD5(ev.created + ev.summary + "end").toString();
-                            if (ev.uid) {
-                                uid = ev.uid + "end";
-                            }
+                            let uid = ev.uid + "end";
                             possibleUids.push(uid);
                             const event: CalEvent = {
                                 summary: ev.summary,
@@ -215,13 +234,13 @@ module.exports = function (RED: Red) {
 
     }
 
-    function cronJobStart(event: any, node:Node) {
+    function cronJobStart(event: any, node: Node) {
         node.send([{
             payload: event
         }]);
     }
 
-    function cronJobEnd(event: any, node:Node) {
+    function cronJobEnd(event: any, node: Node) {
         node.send([null, {
             payload: event
         }]);

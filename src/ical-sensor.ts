@@ -1,13 +1,9 @@
 
-import { Red, Node } from 'node-red';
-import * as crypto from "crypto-js";
+import { Red } from 'node-red';
 import { CronJob } from 'cron';
-import KalenderEvents, { Config } from 'kalender-events';
-import {  CalEvent} from 'kalender-events';
-import * as NodeCache from 'node-cache';
+import KalenderEvents, { Config, CalEvent } from 'kalender-events';
 import { IcalNode, getConfig } from './helper';
-var RRule = require('rrule').RRule;
-var ce = require('cloneextend');
+
 
 module.exports = function (RED: Red) {
     function sensorNode(config: any) {
@@ -15,13 +11,13 @@ module.exports = function (RED: Red) {
         let node: IcalNode = this;
 
         try {
-            
+
             node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
-            node.kalenderEvents=new KalenderEvents(node.config);
-            node.cache = new NodeCache();
-            node.on('input', (msg:any) => {
+            node.kalenderEvents = new KalenderEvents(node.config);
+
+            node.on('input', (msg: any) => {
                 node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
-                node.kalenderEvents=new KalenderEvents(node.config);
+                node.kalenderEvents = new KalenderEvents(node.config);
                 cronCheckJob(node);
             });
 
@@ -44,6 +40,9 @@ module.exports = function (RED: Red) {
                     default:
                         break;
                 }
+                
+                node.config.preview = config.timeout;
+                node.config.previewUnits = config.timeoutUnits;
                 node.job = new CronJob(cron, cronCheckJob.bind(null, node));
                 node.job.start();
 
@@ -76,8 +75,7 @@ module.exports = function (RED: Red) {
         let current = false;
         let last = node.context().get('on');
 
-        var reslist: CalEvent[] = [];
-        node.kalenderEvents.processData(data, new Date(), new Date(), node.kalenderEvents.addOffset(new Date(), 24 * 60), reslist);
+        var reslist: CalEvent[] =node.kalenderEvents.processData(data, new Date(), new Date(), node.kalenderEvents.addOffset(new Date(), node.config.preview, node.config.previewUnits));
 
         for (let k in reslist) {
             if (reslist.hasOwnProperty(k)) {
