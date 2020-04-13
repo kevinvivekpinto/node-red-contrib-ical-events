@@ -68,7 +68,7 @@ module.exports = function (RED: Red) {
         }
 
         var dateNow = new Date();
-        let data = await node.kalenderEvents.getICal(node.config);
+        let data = await node.kalenderEvents.getEvents();
         node.debug('Ical read successfully ' + node.config.url);
         if (!data) return;
 

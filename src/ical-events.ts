@@ -93,7 +93,7 @@ module.exports = function (RED: Red) {
         }
         let dateNow = new Date();
         let possibleUids = [];
-        let data = await node.kalenderEvents.getICal(node.config);
+        let data = await node.kalenderEvents.getEvents();
         if (!data) {
             return;
         }

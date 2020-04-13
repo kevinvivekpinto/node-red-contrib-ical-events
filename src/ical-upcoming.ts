@@ -73,7 +73,7 @@ module.exports = function (RED: Red) {
         node.datesArray = [];
         try {
             let data = await checkICal(node);
-            displayDates(node, node.config,data);
+            displayDates(node,data);
         } catch (err) {
             node.error('Error: ' + err);
             node.status({ fill: 'red', shape: 'ring', text: err.message });
@@ -82,7 +82,7 @@ module.exports = function (RED: Red) {
     }    
 
     async function checkICal(node:IcalNode) {
-        let data = await node.kalenderEvents.getICal(node.config);
+        let data = await node.kalenderEvents.getEvents();
         if (!data) {
             return;
         }
@@ -129,7 +129,7 @@ module.exports = function (RED: Red) {
         }
     }
 
-    function displayDates(node: any, config: Config,datesArray:any) {
+    function displayDates(node: IcalNode,datesArray:any) {
         let todayEventcounter = 0;
         let tomorrowEventcounter = 0;
         let today = new Date();
@@ -151,12 +151,12 @@ module.exports = function (RED: Red) {
             today: todayEventcounter,
             tomorrow: tomorrowEventcounter,
             total: datesArray.length,
-            htmlTable: brSeparatedList(datesArray, config,node),
+            htmlTable: brSeparatedList(datesArray),
             payload: datesArray,
         });
     }
 
-    function brSeparatedList(datesArray: CalEvent[], config:Config, node: IcalNode) {
+    function brSeparatedList(datesArray: CalEvent[]) {
         var text = '<span>';
         var today = new Date();
         var tomorrow = new Date();
