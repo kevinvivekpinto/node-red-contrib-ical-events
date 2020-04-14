@@ -1,6 +1,6 @@
 import { Red } from 'node-red';
 import { CronJob } from 'cron';
-import KalenderEvents,{ Config, CalEvent } from 'kalender-events';
+import { KalenderEvents, Config, CalEvent } from 'kalender-events';
 import * as moment from 'moment';
 import { IcalNode, getConfig } from './helper';
 
@@ -11,12 +11,12 @@ module.exports = function (RED: Red) {
     function upcomingNode(config: any) {
         RED.nodes.createNode(this, config);
         let node: IcalNode = this;
-        
+
         node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, null);
-        node.kalenderEvents=new KalenderEvents(node.config);
+        node.kalenderEvents = new KalenderEvents(node.config);
         node.on('input', (msg) => {
             node.config = getConfig(RED.nodes.getNode(config.confignode) as unknown as Config, config, msg);
-            node.kalenderEvents=new KalenderEvents(node.config);
+            node.kalenderEvents = new KalenderEvents(node.config);
             cronCheckJob(node);
         });
         try {
@@ -73,15 +73,15 @@ module.exports = function (RED: Red) {
         node.datesArray = [];
         try {
             let data = await checkICal(node);
-            displayDates(node,data);
+            displayDates(node, data);
         } catch (err) {
             node.error('Error: ' + err);
             node.status({ fill: 'red', shape: 'ring', text: err.message });
             return;
         }
-    }    
+    }
 
-    async function checkICal(node:IcalNode) {
+    async function checkICal(node: IcalNode) {
         let data = await node.kalenderEvents.getEvents();
         if (!data) {
             return;
@@ -118,7 +118,7 @@ module.exports = function (RED: Red) {
                     pastview = moment(pastview)
                         .subtract(node.config.pastview, node.config.pastviewUnits.charAt(0))
                         .toDate();
-                }                
+                }
                 return node.kalenderEvents.processData(data, realnow, pastview, preview);
             } else {
                 throw 'no Data';
@@ -129,7 +129,7 @@ module.exports = function (RED: Red) {
         }
     }
 
-    function displayDates(node: IcalNode,datesArray:any) {
+    function displayDates(node: IcalNode, datesArray: any) {
         let todayEventcounter = 0;
         let tomorrowEventcounter = 0;
         let today = new Date();

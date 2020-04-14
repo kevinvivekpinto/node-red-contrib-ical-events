@@ -1,7 +1,7 @@
 
 import { Red } from 'node-red';
 import { CronJob } from 'cron';
-import KalenderEvents, { Config, CalEvent } from 'kalender-events';
+import { KalenderEvents, Config, CalEvent } from 'kalender-events';
 import { IcalNode, getConfig } from './helper';
 
 
@@ -40,7 +40,7 @@ module.exports = function (RED: Red) {
                     default:
                         break;
                 }
-                
+
                 node.config.preview = config.timeout;
                 node.config.previewUnits = config.timeoutUnits;
                 node.job = new CronJob(cron, cronCheckJob.bind(null, node));
@@ -75,7 +75,7 @@ module.exports = function (RED: Red) {
         let current = false;
         let last = node.context().get('on');
 
-        var reslist: CalEvent[] =node.kalenderEvents.processData(data, new Date(), new Date(), node.kalenderEvents.addOffset(new Date(), node.config.preview, node.config.previewUnits));
+        var reslist: CalEvent[] = node.kalenderEvents.processData(data, new Date(), new Date(), node.kalenderEvents.addOffset(new Date(), node.config.preview, node.config.previewUnits));
 
         for (let k in reslist) {
             if (reslist.hasOwnProperty(k)) {

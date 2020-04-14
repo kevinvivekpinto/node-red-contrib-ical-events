@@ -2,10 +2,8 @@
 import { Red, Node } from 'node-red';
 import { CronJob } from 'cron';
 import * as parser from 'cron-parser';
-import KalenderEvents, { CalEvent, Config } from 'kalender-events';
+import { KalenderEvents, CalEvent, Config } from 'kalender-events';
 import { IcalNode, getConfig } from './helper';
-import { notDeepEqual } from 'assert';
-
 
 module.exports = function (RED: Red) {
     let newCronJobs = new Map();
