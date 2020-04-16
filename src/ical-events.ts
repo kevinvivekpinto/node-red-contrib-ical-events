@@ -91,109 +91,108 @@ module.exports = function (RED: Red) {
         }
         let dateNow = new Date();
         let possibleUids = [];
-        let data = await node.kalenderEvents.getEvents();
+        let data = await node.kalenderEvents.getEvents({
+            preview: node.config.preview,
+            previewUnits: node.config.previewUnits,
+            pastview: 0
+        });
         if (!data) {
             return;
         }
-        var reslist: CalEvent[] = node.kalenderEvents.processData(data, new Date(), new Date(), node.kalenderEvents.addOffset(new Date(), node.config.preview, node.config.previewUnits));
-
         node.debug('Ical read successfully ' + node.config.url);
         if (data) {
             for (let k in data) {
                 if (data.hasOwnProperty(k)) {
                     let ev = data[k];
 
-                    const eventStart = new Date(ev.start);
-                    const eventEnd = new Date(ev.end);
-                    if (ev.type == 'VEVENT') {
-                        if (eventStart > dateNow) {
-                            let uid = ev.uid + "start";
-                            possibleUids.push(uid);
-                            const event: CalEvent = {
-                                summary: ev.summary,
-                                topic: ev.summary,
-                                id: uid,
-                                location: ev.location,
-                                eventStart: new Date(ev.start),
-                                eventEnd: new Date(ev.end),
-                                description: ev.description,
-                                calendarName: ev.calendarName,
-                                countdown: node.kalenderEvents.countdown(new Date(ev.start))
-                            }
+                    if (ev.eventStart > dateNow) {
+                        let uid = ev.id + "start";
+                        possibleUids.push(uid);
+                        const event: CalEvent = {
+                            summary: ev.summary,
+                            topic: ev.summary,
+                            id: uid,
+                            location: ev.location,
+                            eventStart: ev.eventStart,
+                            eventEnd: new Date(ev.eventEnd),
+                            description: ev.description,
+                            calendarName: ev.calendarName,
+                            countdown: node.kalenderEvents.countdown(ev.eventStart)
+                        }
 
 
-                            if (node.config.offset) {
-                                if (node.config?.offsetUnits === 'seconds') {
-                                    eventStart.setSeconds(eventStart.getSeconds() + node.config.offset);
-                                } else if (node.config?.offsetUnits === 'hours') {
-                                    eventStart.setMinutes(eventStart.getMinutes() + node.config.offset);
-                                } else if (node.config?.offsetUnits === 'days') {
-                                    eventStart.setDate(eventStart.getDate() + node.config.offset);
-                                } else {
-                                    eventStart.setMinutes(eventStart.getMinutes() + node.config.offset);
-                                }
-                            }
-
-
-                            let job2 = new CronJob(eventStart, cronJobStart.bind(null, event, node));
-                            //@ts-ignore
-                            let cronJob = startedCronJobs[uid];
-                            console.log(cronJob)
-                            if (!newCronJobs.has(uid) && !cronJob) {
-                                newCronJobs.set(uid, job2);
-                                node.debug("new - " + uid);
-                            }
-                            else if (cronJob) {
-                                cronJob.stop();
-                                job2 = new CronJob(eventStart, cronJobStart.bind(null, event, node));
-                                newCronJobs.set(uid, job2);
-                                node.debug("started - " + uid);
+                        if (node.config.offset) {
+                            if (node.config?.offsetUnits === 'seconds') {
+                                ev.eventStart.setSeconds(ev.eventStart.getSeconds() + node.config.offset);
+                            } else if (node.config?.offsetUnits === 'hours') {
+                                ev.eventStart.setMinutes(ev.eventStart.getMinutes() + node.config.offset);
+                            } else if (node.config?.offsetUnits === 'days') {
+                                ev.eventStart.setDate(ev.eventStart.getDate() + node.config.offset);
+                            } else {
+                                ev.eventStart.setMinutes(ev.eventStart.getMinutes() + node.config.offset);
                             }
                         }
-                        if (eventEnd > dateNow) {
-                            let uid = ev.uid + "end";
-                            possibleUids.push(uid);
-                            const event: CalEvent = {
-                                summary: ev.summary,
-                                topic: ev.summary,
-                                id: uid,
-                                location: ev.location,
-                                eventStart: new Date(ev.start),
-                                eventEnd: new Date(ev.end),
-                                description: ev.description,
-                                calendarName: ev.calendarName,
-                                countdown: node.kalenderEvents.countdown(new Date(ev.start))
-                            }
 
-                            if (node.config.offset) {
-                                if (node.config?.offsetUnits === 'seconds') {
-                                    eventEnd.setSeconds(eventEnd.getSeconds() + node.config.offset);
-                                } else if (node.config?.offsetUnits === 'hours') {
-                                    eventEnd.setMinutes(eventEnd.getMinutes() + node.config.offset);
-                                } else if (node.config?.offsetUnits === 'days') {
-                                    eventEnd.setDate(eventEnd.getDate() + node.config.offset);
-                                } else {
-                                    eventEnd.setMinutes(eventEnd.getMinutes() + node.config.offset);
-                                }
-                            }
 
-                            let job2 = new CronJob(eventEnd, cronJobEnd.bind(null, event, node));
-                            //@ts-ignore
-                            let cronJob = startedCronJobs[uid];
-                            //@ts-ignore
-                            if (!newCronJobs.has(uid) && !startedCronJobs[uid]) {
-                                newCronJobs.set(uid, job2);
-                                node.debug("new - " + uid);
-                            }
-                            //@ts-ignore
-                            else if (startedCronJobs[uid]) {
-                                cronJob.stop();
-                                job2 = new CronJob(eventStart, cronJobEnd.bind(null, event, node));
-                                newCronJobs.set(uid, job2);
-                                node.debug("started - " + uid);
-                            }
+                        let job2 = new CronJob(ev.eventStart, cronJobStart.bind(null, event, node));
+                        //@ts-ignore
+                        let cronJob = startedCronJobs[uid];
+                        console.log(cronJob)
+                        if (!newCronJobs.has(uid) && !cronJob) {
+                            newCronJobs.set(uid, job2);
+                            node.debug("new - " + uid);
+                        }
+                        else if (cronJob) {
+                            cronJob.stop();
+                            job2 = new CronJob(ev.eventStart, cronJobStart.bind(null, event, node));
+                            newCronJobs.set(uid, job2);
+                            node.debug("started - " + uid);
                         }
                     }
+                    if (ev.eventEnd > dateNow) {
+                        let uid = ev.id + "end";
+                        possibleUids.push(uid);
+                        const event: CalEvent = {
+                            summary: ev.summary,
+                            topic: ev.summary,
+                            id: uid,
+                            location: ev.location,
+                            eventStart: ev.eventStart,
+                            eventEnd: ev.eventEnd,
+                            description: ev.description,
+                            calendarName: ev.calendarName,
+                            countdown: node.kalenderEvents.countdown(ev.eventStart)
+                        }
+
+                        if (node.config.offset) {
+                            if (node.config?.offsetUnits === 'seconds') {
+                                ev.eventEnd.setSeconds(ev.eventEnd.getSeconds() + node.config.offset);
+                            } else if (node.config?.offsetUnits === 'hours') {
+                                ev.eventEnd.setMinutes(ev.eventEnd.getMinutes() + node.config.offset);
+                            } else if (node.config?.offsetUnits === 'days') {
+                                ev.eventEnd.setDate(ev.eventEnd.getDate() + node.config.offset);
+                            } else {
+                                ev.eventEnd.setMinutes(ev.eventEnd.getMinutes() + node.config.offset);
+                            }
+                        }
+
+                        let job2 = new CronJob(ev.eventEnd, cronJobEnd.bind(null, event, node));
+                        //@ts-ignore
+                        let cronJob = startedCronJobs[uid];
+                        //@ts-ignore
+                        if (!newCronJobs.has(uid) && !startedCronJobs[uid]) {
+                            newCronJobs.set(uid, job2);
+                            node.debug("new - " + uid);
+                        }
+                        //@ts-ignore
+                        else if (startedCronJobs[uid]) {
+                            cronJob.stop();
+                            job2 = new CronJob(ev.eventStart, cronJobEnd.bind(null, event, node));
+                            newCronJobs.set(uid, job2);
+                            node.debug("started - " + uid);
+                        }
+                    }
+
                 }
             }
 
@@ -230,18 +229,29 @@ module.exports = function (RED: Red) {
             }
         }
 
+        node.send([null, null, {
+            payload: startedCronJobs
+        }])
+
     }
 
     function cronJobStart(event: any, node: Node) {
         node.send([{
             payload: event
-        }]);
+        }, null, {
+            payload: startedCronJobs
+        }
+        ]);
     }
 
     function cronJobEnd(event: any, node: Node) {
-        node.send([null, {
-            payload: event
-        }]);
+        node.send([
+            null, {
+                payload: event
+            }, {
+                payload: startedCronJobs
+            }
+        ]);
     }
 
     RED.nodes.registerType("ical-events", eventsNode);

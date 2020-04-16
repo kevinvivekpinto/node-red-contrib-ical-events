@@ -68,18 +68,20 @@ module.exports = function (RED: Red) {
         }
 
         var dateNow = new Date();
-        let data = await node.kalenderEvents.getEvents();
+        let data = await node.kalenderEvents.getEvents({
+            preview: node.config.preview,
+            previewUnits: node.config.previewUnits,
+            pastview:0
+        });
         node.debug('Ical read successfully ' + node.config.url);
         if (!data) return;
 
         let current = false;
         let last = node.context().get('on');
 
-        var reslist: CalEvent[] = node.kalenderEvents.processData(data, new Date(), new Date(), node.kalenderEvents.addOffset(new Date(), node.config.preview, node.config.previewUnits));
-
-        for (let k in reslist) {
-            if (reslist.hasOwnProperty(k)) {
-                let ev = reslist[k];
+        for (let k in data) {
+            if (data.hasOwnProperty(k)) {
+                let ev = data[k];
                 if (ev.eventStart <= dateNow && ev.eventEnd >= dateNow) {
 
                     let output = false;

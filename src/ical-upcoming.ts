@@ -83,48 +83,10 @@ module.exports = function (RED: Red) {
 
     async function checkICal(node: IcalNode) {
         let data = await node.kalenderEvents.getEvents();
-        if (!data) {
-            return;
-        }
         node.debug('Ical read successfully ' + node.config.url);
-
-        try {
-            if (data) {
-                var realnow = new Date();
-                var preview = new Date();
-                var pastview = new Date();
-
-                if (node.config.previewUnits === 'days') {
-                    if (node.config.preview == 1) {
-                        preview = moment(preview).endOf('day').add(node.config.preview - 1, 'days').toDate();
-                    } else {
-                        preview = moment(preview).endOf('day').add(node.config.preview, 'days').toDate();
-                    }
-                } else {
-                    //@ts-ignore
-                    preview = moment(preview)
-                        .add(node.config.preview, node.config.previewUnits.charAt(0))
-                        .toDate();
-                }
-
-                if (node.config.pastviewUnits === 'days') {
-                    if (node.config.pastview == 1) {
-                        pastview = moment(pastview).startOf('day').subtract(node.config.pastview - 1, 'days').toDate();
-                    } else {
-                        pastview = moment(pastview).startOf('day').subtract(node.config.pastview, 'days').toDate();
-                    }
-                } else {
-                    //@ts-ignore
-                    pastview = moment(pastview)
-                        .subtract(node.config.pastview, node.config.pastviewUnits.charAt(0))
-                        .toDate();
-                }
-                return node.kalenderEvents.processData(data, realnow, pastview, preview);
-            } else {
-                throw 'no Data';
-            }
-        } catch (e) {
-            node.debug(JSON.stringify(e));
+        if (data) {
+            return data;
+        } else {
             throw 'no Data';
         }
     }
