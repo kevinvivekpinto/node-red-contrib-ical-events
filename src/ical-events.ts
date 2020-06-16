@@ -187,7 +187,8 @@ module.exports = function (RED: Red) {
                         //@ts-ignore
                         else if (startedCronJobs[uid]) {
                             cronJob.stop();
-                            job2 = new CronJob(ev.eventStart, cronJobEnd.bind(null, event, node));
+                            
+                            job2 = new CronJob(ev.eventEnd, cronJobEnd.bind(null, event, node));
                             newCronJobs.set(uid, job2);
                             node.debug("started - " + uid);
                         }
